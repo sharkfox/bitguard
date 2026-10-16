@@ -11,12 +11,6 @@ uv sync --locked --all-groups
 uv run pre-commit install
 ```
 
-The pre-commit hook runs pytest with coverage before each commit. To run it manually:
-
-```sh
-uv run pytest
-```
-
 ## Usage
 
 Scan the current directory:
