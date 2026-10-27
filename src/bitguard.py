@@ -287,6 +287,7 @@ def run_scan(directory: Path, database: Path, force_update: bool, no_progress: b
 )
 def main(directory: Path, database: Path, force_update: bool, no_progress: bool) -> None:
     """Run the scan and print its total elapsed time."""
+    print(f"Options: directory={directory.resolve()}, database={database}, force_update={force_update}, no_progress={no_progress}")
     start_time = time.perf_counter()
     try:
         run_scan(directory, database, force_update, no_progress)
