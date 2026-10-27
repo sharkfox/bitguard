@@ -112,12 +112,14 @@ def read_stored_hashes(database_path: Path) -> dict[str, str]:
         connection.close()
 
 
-def hash_scan_files(filenames: list[str]) -> dict[str, tuple[str, str, str]]:
+def hash_scan_files(filenames: list[str], no_progress: bool = False) -> dict[str, tuple[str, str, str]]:
     """Hash all files in parallel and return metadata keyed by filename."""
     with multiprocessing.Pool() as pool:
         return {
             result[0]: result[1:]
-            for result in tqdm(pool.imap_unordered(hash_file, filenames), total=len(filenames), desc="Hashing")
+            for result in tqdm(
+                pool.imap_unordered(hash_file, filenames), total=len(filenames), desc="Hashing", disable=no_progress
+            )
         }
 
 
@@ -235,14 +237,14 @@ def report_results(summary: ScanSummary, force_update: bool) -> None:
     print("baseline updated" if force_update else "no errors detected")
 
 
-def run_scan(directory: Path, database: Path, force_update: bool) -> None:
+def run_scan(directory: Path, database: Path, force_update: bool, no_progress: bool = False) -> None:
     """Check a directory tree against its SQLite SHA-256 baseline."""
     scan_root = directory.resolve()
     database_path = (database if database.is_absolute() else scan_root / database).resolve()
     exclude_filter = ExcludeFilter(scan_root)
     filenames = collect_files(scan_root, exclude_filter)
     stored_hashes = read_stored_hashes(database_path)
-    computed_hashes = hash_scan_files(filenames)
+    computed_hashes = hash_scan_files(filenames, no_progress)
     results, entries, scanned_paths = build_scan_results(
         filenames,
         scan_root,
@@ -278,11 +280,16 @@ def run_scan(directory: Path, database: Path, force_update: bool) -> None:
     is_flag=True,
     help="Update mismatched hashes and remove missing files from the baseline.",
 )
-def main(directory: Path, database: Path, force_update: bool) -> None:
+@click.option(
+    "--no-progress",
+    is_flag=True,
+    help="Mute the tqdm progress bar.",
+)
+def main(directory: Path, database: Path, force_update: bool, no_progress: bool) -> None:
     """Run the scan and print its total elapsed time."""
     start_time = time.perf_counter()
     try:
-        run_scan(directory, database, force_update)
+        run_scan(directory, database, force_update, no_progress)
     finally:
         elapsed_seconds = int(time.perf_counter() - start_time)
         minutes, seconds = divmod(elapsed_seconds, 60)
